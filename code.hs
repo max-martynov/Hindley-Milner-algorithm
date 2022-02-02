@@ -11,7 +11,6 @@ import Data.Maybe
 import Control.Monad
 import Control.Monad.State
 
-
 infixl 4 :@
 infixr 3 :->
 
@@ -66,6 +65,7 @@ appEnv (Env xs) v = do
 
 ----
 
+-- Осуществляет подстановку типов вместо переменных типа в тип
 appSubsTy :: SubsTy -> Type -> Type
 appSubsTy sub (t :-> t')            = (appSubsTy sub t) :-> (appSubsTy sub t')
 appSubsTy (SubsTy sub) (TVar symb)  = 
@@ -73,6 +73,7 @@ appSubsTy (SubsTy sub) (TVar symb)  =
         Nothing -> TVar symb
         Just tt -> tt
 
+-- Осуществляет подстановку типов вместо переменных типа в контекст
 appSubsEnv :: SubsTy -> Env -> Env
 appSubsEnv sub (Env env) = Env $ do
     (s, t) <- env
@@ -81,6 +82,7 @@ appSubsEnv sub (Env env) = Env $ do
 
 ---
 
+-- Выполняет композицию перестановок
 composeSubsTy :: SubsTy -> SubsTy -> SubsTy
 composeSubsTy (SubsTy sub1) (SubsTy sub2) = SubsTy $ (do
     (s2, t2) <- sub2
@@ -98,6 +100,7 @@ instance Monoid SubsTy where
 
 ---
 
+-- Возвращает найиболее общий унификатор или сообщение об ошибке
 unify :: MonadError String m => Type -> Type -> m SubsTy
 unify t1 t2 | t1 == t2  = return mempty
             | otherwise = 
@@ -119,6 +122,7 @@ unify t1 t2 | t1 == t2  = return mempty
 
 ---
 
+-- Строит систему уравнений на типы
 equations :: MonadError String m => Env -> Expr -> Type -> m [(Type,Type)]
 equations env e t = 
     evalStateT (equations' env e t) (freeTVars t `union` freeTVarsEnv env)
@@ -152,6 +156,7 @@ genTypes s = map (\x -> s ++ show x) [0..100]
 term = Lam "y" $ Var "x"
 env = Env [("x",TVar "a" :-> TVar "b")]
 
+-- Алгоритм поиска главной пары
 principlePair :: MonadError String m => Expr -> m (Env,Type)
 principlePair e = do
     let fV = freeVars e
@@ -165,4 +170,3 @@ principlePair e = do
 uniteTypes :: [Type] -> Type
 uniteTypes [t] = t
 uniteTypes (t : types) = t :-> (uniteTypes types)
-
